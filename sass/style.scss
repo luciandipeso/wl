@@ -1,0 +1,383 @@
+@font-face {
+  font-family: 'Computer Modern Serif';
+  src: url('/fonts/cmunrm.eot');
+  src: url('/fonts/cmunrm.eot?#iefix') format('embedded-opentype'),
+     url('/fonts/cmunrm.woff') format('woff'),
+     url('/fonts/cmunrm.ttf') format('truetype'),
+     url('/fonts/cmunrm.svg#cmunrm') format('svg');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Computer Modern Serif';
+  src: url('/fonts/cmunbx.eot');
+  src: url('/fonts/cmunbx.eot?#iefix') format('embedded-opentype'),
+     url('/fonts/cmunbx.woff') format('woff'),
+     url('/fonts/cmunbx.ttf') format('truetype'),
+     url('/fonts/cmunbx.svg#cmunbx') format('svg');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Computer Modern Serif';
+  src: url('/fonts/cmunti.eot');
+  src: url('/fonts/cmunti.eot?#iefix') format('embedded-opentype'),
+     url('/fonts/cmunti.woff') format('woff'),
+     url('/fonts/cmunti.ttf') format('truetype'),
+     url('/fonts/cmunti.svg#cmunti') format('svg');
+  font-weight: normal;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: 'Computer Modern Serif';
+  src: url('/fonts/cmunbi.eot');
+  src: url('/fonts/cmunbi.eot?#iefix') format('embedded-opentype'),
+     url('/fonts/cmunbi.woff') format('woff'),
+     url('/fonts/cmunbi.ttf') format('truetype'),
+     url('/fonts/cmunbi.svg#cmunbi') format('svg');
+  font-weight: bold;
+  font-style: italic;
+}
+
+//== Colors
+//
+//## Gray and brand colors for use across Bootstrap.
+$primary: rgb(215, 136, 39);
+$info:    rgb(139, 157, 165);
+
+//== Scaffolding
+//
+// ## Settings for some of the most global styles.
+$body-color: #000;
+$link-color: $primary;
+$link-hover-color: lighten($link-color, 15%);
+$link-active-color: rgb(194, 55, 0);
+
+//== Typography
+//
+//## Font, line-height, and color for body text, headings, and more.
+$font-size-base: 1rem !default; 
+$font-family-sans-serif: 'Lobster', cursive;
+$font-family-serif: 'Computer Modern Serif', Times, 'Times New Roman', serif;
+$font-family-base: $font-family-serif;
+$font-size-small-caps: $font-size-base * 1.14; 
+
+//== Navbar
+//
+//##
+
+// Basics of a navbar
+$navbar-light-color: $body-color;
+
+// Navbar links
+$navbar-light-hover-color:          $link-hover-color;
+$navbar-light-active-color:         $link-active-color;
+$navbar-light-disabled-color:       #ccc;
+
+// Navbar toggle
+$navbar-light-toggler-border-color: #fff;
+
+@import url(http://fonts.googleapis.com/css?family=Lobster);
+@import "node_modules/bootstrap/scss/bootstrap";
+
+//
+// Globals
+//
+
+a.active
+{
+  color: $link-active-color;
+}
+
+.small-caps
+{
+  text-transform: lowercase;
+  font-variant: small-caps;
+  font-size: $font-size-small-caps;
+}
+
+
+//
+// Base structure
+//
+html,
+body {
+  height: 100%;
+}
+body {
+  background-color: $gray-900;
+}
+
+body > .container
+{
+  padding-top: 85px;
+  background-color: $body-bg;
+  box-shadow: inset 0 0 20px rgba(0,0,0,.2);
+}
+
+//
+// Header
+//
+
+#masthead .navbar.fixed-top
+{
+  top: 10px;
+  left: auto;
+  right: auto;
+
+  @each $breakpoint, $container-max-width in $container-max-widths {
+    @include media-breakpoint-up($breakpoint, $grid-breakpoints) {
+      width: $container-max-width;
+      margin-left: (-1 * ($grid-gutter-width+10));
+    }
+  }
+}
+
+#masthead .navbar-toggle 
+{
+  border-color: $gray-600;
+  position: absolute;
+  top: 0;
+  margin-left: 50px;
+
+  .icon-bar 
+  {
+    background-color: #000;
+  }
+}
+
+#masthead .navbar-brand-wrapper
+{
+  padding-right: 50px;
+  position: relative;
+}
+
+#masthead .navbar-brand-wrapper:after
+{
+  border-top: 26px solid $primary;
+  border-bottom: 26px solid $primary;
+  border-right: 52px solid rgba(255, 255, 255, 0.8);
+  position: absolute;
+  top: 0;
+  right: 0;
+  content: '';
+  height: 0;
+  width: 0;
+}
+
+#masthead .navbar-brand
+{
+  background-color: $primary;
+  background: linear-gradient(90deg, darken($primary, 10%), $primary 10%);
+  font-family: $font-family-sans-serif;
+  font-size: $h3-font-size;
+  letter-spacing: 1px;
+  color: #fff;
+  padding-left: ($navbar-padding-y * 1.5);
+  padding-right: ($navbar-padding-y * 1.5);
+  margin-right: 0;
+}
+
+#masthead .animate-search
+{
+  -webkit-transition:0.2s ease all;
+  transition:0.2s ease all;
+  width: 42px;
+  padding-right: 42px;
+  clear: both;
+}
+
+#masthead .animate-search > .animate-search-cse
+{
+  width: 200px;
+}
+
+#masthead .animate-search > .animate-search-cse input.gsc-search-button
+{
+  display: inline-block;
+  margin-bottom: 0;
+  font-weight: $btn-font-weight;
+  text-align: center;
+  vertical-align: middle;
+  cursor: pointer;
+  background-image: none;
+  border: 1px solid transparent;
+  white-space: nowrap;
+
+  /* .button-size($input-btn-padding-y; $input-btn-padding-x; $font-size-base; $input-btn-line-height; $btn-border-radius);
+  .user-select(none);
+
+  &,
+  &:active,
+  &.active {
+    &:focus {
+      .tab-focus();
+    }
+  } */
+
+  /* &:hover,
+  &:focus {
+    color: @btn-default-color;
+    text-decoration: none;
+  }
+
+  &:active,
+  &.active {
+    outline: 0;
+    background-image: none;
+    .box-shadow(inset 0 3px 5px rgba(0,0,0,.125));
+  }
+
+  &.disabled,
+  &[disabled],
+  fieldset[disabled] & {
+    cursor: not-allowed;
+    pointer-events: none; // Future-proof disabling of clicks
+    .opacity(.65);
+    .box-shadow(none);
+  } */
+
+  // .button-variant(@btn-info-color; @btn-info-bg; @btn-info-border);
+  width: 25px;
+  height: 25px;
+  margin-top: 0;
+  margin-left: -5px;
+  padding: 6px;
+}
+
+#main-menu
+{
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+#masthead .navbar-nav > .nav-item > .nav-link
+{
+  border-bottom: 2px solid transparent;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+#masthead .navbar-nav > .nav-item > .nav-link:hover,
+#masthead .navbar-nav > .nav-item > .nav-link:focus
+{
+  border-bottom-color: $link-hover-color; 
+  background-color: $body-bg;
+  text-decoration: none;
+}
+
+#masthead .navbar-nav > .active > .nav-link,
+#masthead .navbar-nav > .active > .nav-link:hover,
+#masthead .navbar-nav > .active > .nav-link:focus
+{
+  color: $link-active-color;
+  border-bottom-color: $link-active-color; 
+}
+
+//
+// Side nav
+//
+.side-nav > li > button
+{
+  border-right: 2px solid transparent
+}
+
+.side-nav > .active > button
+{
+  color: $link-active-color;
+  border-right-color: $link-active-color;
+}
+
+.postlet-nav
+{
+  height: 400px;
+  overflow-y: scroll;
+}
+
+//
+// Posts
+//
+.posts > .post 
+{
+  padding-bottom: 40px
+}
+
+article.essay
+{
+  text-align: justify;
+}
+
+article .article-title,
+article .article-title a
+{
+  text-align: center;
+  color: $body-color;
+}
+
+article .article-subtitle
+{
+  text-align: center;
+  font-size: $h3-font-size;
+}
+
+article.article-body
+{
+  position: relative; 
+}
+
+.article-sidenote
+{
+  color: $info;
+  padding-left: 3px;
+}
+
+.article-sidenote > .contents
+{
+  position: absolute;
+  top: auto;
+  right: 0;
+  margin-right: percentage(-(4.5 / $grid-columns));
+  width: percentage((4 / $grid-columns));
+  text-align: left;
+  font-size: $font-size-base;
+}
+
+.article-sidenote.left > .contents
+{
+  left: 0;
+  right: auto;
+  margin-right: 0;
+  margin-left: percentage(-(4.5 / $grid-columns));
+}
+
+article footer
+{
+  padding-top: $nav-link-padding-y;
+  font-size: $font-size-sm;
+  color: $info;
+}
+
+article footer .citations
+{
+  text-align: left;
+}
+
+.angular-google-map-container
+{
+  height: 400px;
+}
+
+//
+// Footer
+//
+
+#mastfoot {
+  background-color: $primary;
+  height: 1rem;
+  text-align: center;
+  margin-left: -15px;
+  margin-right: -15px;
+}
+
