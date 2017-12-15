@@ -134,6 +134,12 @@ function getPost(id) {
   return post
 }
 
+// Load templates
+const templates = {
+  essay: fs.readFileSync(path.join(__dirname, 'views', 'partials', 'essay.ejs'), 'utf-8'),
+  travel: fs.readFileSync(path.join(__dirname, 'views', 'partials', 'travel.ejs'), 'utf-8')
+}
+
 wl.set('view engine', 'ejs')
 
 wl.use(
@@ -150,7 +156,12 @@ wl.use(compression())
 
 wl.get('/', function(req, res) {
   let posts = getPosts(0)
-  res.render('index', { posts: posts, moment: moment })
+  res.render('index', { 
+    posts: posts, 
+    moment: moment, 
+    page: 1,
+    templates: templates
+  })
 })
 
 wl.get('/:page', function(req, res) {
@@ -158,7 +169,22 @@ wl.get('/:page', function(req, res) {
   let page = validator.isInt(dirtyPage, { min: 1 }) ? parseInt(dirtyPage) : 1
   let offset = (page*2)-2
   let posts = getPosts(offset)
-  res.render('index', { posts: posts, moment: moment })
+  res.render('index', { 
+    posts: posts, 
+    moment: moment, 
+    page: page,
+    templates: templates
+  })
+})
+
+wl.get('/ajax/:page', function(req, res) {
+  let dirtyPage = req.params.page || 1;
+  let page = validator.isInt(dirtyPage, { min: 1 }) ? parseInt(dirtyPage) : 1
+  let offset = (page*2)-2
+  let posts = getPosts(offset)
+  res.send({
+    posts: posts
+  })
 })
 
 wl.listen(3000, function() {

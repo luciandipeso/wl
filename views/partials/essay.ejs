@@ -1,35 +1,35 @@
-<div class="post">
-  <article class="essay">
-    <div class="row">
-      <div class="col-6 offset-sm-3 article-body">
-        <h1 class="article-title"><a><%= post.title %></a></h1>
-        <% if(post.subtitle != "") { %>
-          <h2 class="article-subtitle"><%= post.subtitle %></h2>
-        <% } %>
-        <div>
-          <%- post.post %>
-        </div>
+<article class="essay">
+  <div class="row">
+    <div class="col-6 offset-sm-3 article-body">
+      <h1 class="article-title">
+        <a href="http://whereslucian.com/post/<%= post.id %>"><%= post.title %></a>
+      </h1>
+      <% if(post.subtitle != "") { %>
+        <h2 class="article-subtitle"><%= post.subtitle %></h2>
+      <% } %>
+      <div>
+        <%- post.post %>
       </div>
     </div>
-    <footer>
-      <div class="row">
-        <div class="col-6 offset-sm-3">
-          <ol class="list-unstyled citations">
-            <% for(let j=0;j<post.citations.length; j++) { %>
-              <li><%- post.citations[j].citation %></li>
-            <% } %>
-          </ol>
-        </div>
+  </div>
+  <footer>
+    <div class="row">
+      <div class="col-6 offset-sm-3">
+        <ol class="list-unstyled citations">
+          <% for(let j=0;j<post.citations.length; j++) { %>
+            <li><%- post.citations[j].citation %></li>
+          <% } %>
+        </ol>
       </div>
-      <div class="row">
-        <div class="col-6 offset-sm-3">
-          Written <%= moment(post.dateAdded).format('LLLL') %><br>
-          <% if(post.latlng) { %>
-            <%= post.latlng %><br>
-          <% } %></span>
-          Permalink: <a href="http://whereslucian.com/post/<%= post.id %>">whereslucian.com/post/<%= post.id %></a>
-        </div>
+    </div>
+    <div class="row">
+      <div class="col-6 offset-sm-3">
+        Written <%= moment(post.dateAdded).format('LLLL') %><br>
+        <% if(post.latlng) { %>
+          <%= post.latlng %><br>
+        <% } %></span>
+        Permalink: <a href="http://whereslucian.com/post/<%= post.id %>">whereslucian.com/post/<%= post.id %></a>
       </div>
-    </footer>
-  </article>
-</div>
+    </div>
+  </footer>
+</article>

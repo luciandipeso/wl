@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="/style/style.css">
   </head>
   <body>
-    <div class="container">
+    <div class="container"">
       <header id="masthead">
         <nav class="navbar fixed-top navbar-expand-sm">
           <div class="mr-auto navbar-brand-wrapper">
@@ -52,18 +52,103 @@
         <div class="posts">
           <% for(let i=0;i<posts.length; i++) { %>
             <% var post = posts[i] %>
-            <% if(post.type == "essay") { %>
-              <%- include partials/essay.ejs %>
-            <% } %>
+            <div class="post">
+              <% if(post.type == "essay") { %>
+                <%- include partials/essay.ejs %>
+              <% } else if(post.type == "travel") { %>
+                <%- include partials/travel.ejs %>
+              <% } %>
+            </div>
           <% } %>
         </div>
+        <nav aria-label="Pagination" id="paginator">
+          <ol class="pagination justify-content-center">
+            <% if(page > 1) { %>
+              <li class="page-item">
+                <a class="page-link" href="/<%= (page-1) %>" aria-label="Previous">
+                  <span aria-hidden="true">&laquo;</span>
+                  <span class="sr-only">Previous</span>
+                </a>
+              </li>
+            <% } %>
+            <% if(posts.length > 1) {%>
+              <li class="page-item">
+                <a class="page-link" href="/<%= (page+1) %>" aria-label="Next">
+                  <span aria-hidden="true">&raquo;</span>
+                  <span class="sr-only">Next</span>
+                </a>
+              </li>
+            <% } %>
+          </ol>
+        </nav>
       </div>
       <footer id="mastfoot">
               
       </footer>
     </div>
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+    <script src="/js/ejs.min.js"></script>
+    <script src="/js/moment.js"></script>
+    <script>
+      $(function() {
+        const templates = <%-JSON.stringify(templates)%>
+        var page = <%= page %>
+        var disableInfiniteScroll = false
+
+        $('#paginator').hide()
+
+        // Load infinite scrolling
+        $(window).on('scroll', function() {
+          if($(window).scrollTop() + $(window).height() > $('#content').height() - $('#content').find('.post').last().height()/2 && !disableInfiniteScroll) {
+            load_next_page()
+          }
+        })
+
+        function load_next_page() {
+          disableInfiniteScroll = true
+          let nextPage = page+1;
+          $.ajax({
+            url: '/ajax/' + nextPage
+          }).done(function(data) {
+            page = nextPage
+            if(data.posts.length < 1) {
+              $(window).off('scroll')
+              return
+            }
+
+            let html = ''
+            for(let i=0;i<data.posts.length;i++) {
+              let post = data.posts[i]
+
+              html += '<div class="post">' + ejs.render(templates[post.type], { post: post }) + '</div>'
+            }
+
+            $('#content > .posts').append(html)
+            disableInfiniteScroll = false
+          })
+        }
+      })
+      /*var maps = {}
+      function initMaps() {
+        $(function() {
+          // Get all maps
+          var maps = $('.article-postlet-map').each(function(index) {
+            // Extract the ID
+            var id = $(this).attr('id').replace('postlet-map-', '')
+            if(!maps[id]) {
+              // Initialize the map
+              maps[id] = new google.maps.Map(document.getElementById("postlet-map-" + id), {
+                zoom: 10,
+                center: 
+              })
+            }
+          })
+        })
+      }*/
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDFlTrm2SlM9N9L3cee0UTC2hMyhnrHHEQ&callback=initMaps">
+    </script>
   </body>
 </html>

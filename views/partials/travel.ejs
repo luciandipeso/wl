@@ -1,0 +1,64 @@
+<article class="travel">
+  <div class="row">
+    <div class="col-6 offset-sm-3 article-body">
+      <h1 class="article-title">
+        <a href="http://whereslucian.com/post/<%= post.id %>"><%= post.title %></a>
+      </h1>
+      <% if(post.subtitle != "") { %>
+        <h2 class="article-subtitle"><%= post.subtitle %></h2>
+      <% } %>
+      <div>
+        <%- post.post %>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-3">
+      <ol class="nav nav-pills fkex-column side-nav postlet-nav">
+        <% for(let j=0; j<post.postlets.length; j++) { %>
+          <% let postlet = post.postlets[j] %>
+          <li class="nav-item" ng-class="{ active: item.postlets[$index].visible }">
+            <button class="btn btn-link" id="postlet-<%= postlet.id %>">
+              <%= moment(postlet.dateAdded).format('llll') %>
+            </button>
+          </li>
+        <% } %>
+      </ol>
+    </div>
+    <div class="col-6">
+      <div class="article-postlet-map" id="postlet-map-<%= post.id %>">
+        <!-- <google-map center="item.map.center" control="item.mapObject" zoom="item.map.zoom" draggable="true">
+          <polyline path="item.map.postletLatLngs" stroke="item.map.stroke"></polyline>
+        </google-map> -->
+      </div>
+    </div>
+    <div class="col-3">
+      <% for(let j=0; j<post.postlets.length; j++) { %>
+        <% let postlet = post.postlets[j] %>
+        <div id="postlet-<%= postlet.id %>" class="d-none">
+          <%= postlet.post %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+  <footer>
+    <div class="row">
+      <div class="col-6 offset-sm-3">
+        <ol class="list-unstyled citations">
+          <% for(let j=0;j<post.citations.length; j++) { %>
+            <li><%- post.citations[j].citation %></li>
+          <% } %>
+        </ol>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-6 offset-sm-3">
+        Written <%= moment(post.dateAdded).format('LLLL') %><br>
+        <% if(post.latlng) { %>
+          <%= post.latlng %><br>
+        <% } %></span>
+        Permalink: <a href="http://whereslucian.com/post/<%= post.id %>">whereslucian.com/post/<%= post.id %></a>
+      </div>
+    </div>
+  </footer>
+</article>
