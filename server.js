@@ -153,6 +153,14 @@ wl.get('/', function(req, res) {
   res.render('index', { posts: posts, moment: moment })
 })
 
+wl.get('/:page', function(req, res) {
+  let dirtyPage = req.params.page || 1;
+  let page = validator.isInt(dirtyPage, { min: 1 }) ? parseInt(dirtyPage) : 1
+  let offset = (page*2)-2
+  let posts = getPosts(offset)
+  res.render('index', { posts: posts, moment: moment })
+})
+
 wl.listen(3000, function() {
   console.log('Listening')
 })
