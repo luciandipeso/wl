@@ -4,4 +4,4 @@ db/*
 conf/*
 build
 /public/images
-/public/projects
+/public/projects/coffee-math/

@@ -1,4 +1,0 @@
-coffee-math
-===========
-
-Coffee Math
