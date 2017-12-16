@@ -156,6 +156,7 @@ wl.use(compression())
 
 wl.get('/', function(req, res) {
   let posts = getPosts(0)
+  
   res.render('index', { 
     posts: posts, 
     moment: moment, 
