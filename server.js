@@ -1,3 +1,4 @@
+const morgan = require('morgan')
 const compression = require('compression')
 const express = require('express')
 const wl = express()
@@ -6,10 +7,10 @@ const fs = require('fs')
 const async = require('async')
 const path = require('path')
 const Database = require('better-sqlite3')
-const rss = require('rss')
 const validator = require('validator')
 const nconf = require('nconf')
 const moment = require('moment')
+const rss = require('rss')
 
 nconf.argv()
      .env()
@@ -43,6 +44,29 @@ function getSparsePost(row) {
     postlets: [],
     citations: []
   }
+}
+
+/**
+ * Get list of all posts
+ *
+ * Used for RSS feeds
+ *
+ * @return array List of all posts
+ */
+function getPostList() {
+  let posts = []
+  
+  let query = 'SELECT p.post_id post_post_id, p.title post_title, p.subtitle post_subtitle,' +
+    ' p.type post_type, p.date_added post_date_added, p.date_updated post_date_updated, p.lat post_lat,' +
+    ' p.lng post_lng, p.post post_post, p.author post_author FROM post p ORDER BY post_date_added';
+
+  let rows = db.prepare(query).all()
+  for(let i=0; i<rows.length; i++) {
+    let row = rows[i]
+    posts.push(getSparsePost(row))
+  }
+
+  return posts
 }
 
 /**
@@ -93,7 +117,7 @@ function getPosts(offset) {
     ' FROM (SELECT * FROM post ORDER BY post.date_added DESC LIMIT 2 OFFSET ' + offset + ') p' +
     ' LEFT JOIN postlet ON p.post_id = postlet.post_id' +
     ' LEFT JOIN citation ON p.post_id = citation.post_id' +
-    ' ORDER BY p.date_added DESC, postlet.date_added DESC, citation.citation ASC'
+    ' ORDER BY post_date_added DESC, postlet_date_added DESC, citation_citation ASC'
 
   let rows = db.prepare(query).all()
   for(let i=0; i<rows.length; i++) {
@@ -119,13 +143,19 @@ function getPosts(offset) {
  * @return object The post
  */
 function getPost(id) {
-  let query = 'SELECT * FROM post' +
-    ' LEFT JOIN postlet ON post.post_id = postlet.post_id' +
-    ' LEFT JOIN citation ON post.post_id = citation.post_id' +
-    ' WHERE post.post_id = ? postlet.date_added DESC, citation.citation ASC'
+  let query = 'SELECT p.post_id post_post_id, p.title post_title, p.subtitle post_subtitle,' +
+    ' p.type post_type, p.date_added post_date_added, p.date_updated post_date_updated, p.lat post_lat,' +
+    ' p.lng post_lng, p.post post_post, p.author post_author,' +
+    ' postlet.postlet_id postlet_postlet_id, postlet.date_added postlet_date_added, postlet.lat postlet_lat,' +
+    ' postlet.lng postlet_lng, postlet.post postlet_post, citation.cite_id citation_cite_id, citation.citation citation_citation' +
+    ' FROM post p' +
+    ' LEFT JOIN postlet ON p.post_id = postlet.post_id' +
+    ' LEFT JOIN citation ON p.post_id = citation.post_id' +
+    ' WHERE post_post_id = ?' +
+    ' ORDER BY post_date_added DESC, postlet_date_added DESC, citation_citation ASC'
 
   let rows = db.prepare(query).all(id)
-  let post = getSparsePost(row)
+  let post = getSparsePost(rows[0])
   for(let i=0; i<rows.length; i++) {
     row = rows[i]
     post = buildPost(post, row)
@@ -133,6 +163,22 @@ function getPost(id) {
 
   return post
 }
+
+// Set up feeds
+const feed = new rss({
+  title: 'Where’s Lucian?',
+  site_url: 'http://whereslucian.com',
+  author: 'Lucian DiPeso'
+})
+
+const lucianReadsToSavannaFeed = new rss({
+  title: 'Lucian Reads to Savanna',
+  feed_url: 'http://whereslucian.com/feeds/lucian-reads-to-savanna',
+  site_url: 'http://whereslucian.com',
+  author: 'Lucian DiPeso',
+  description: 'Lucian reading select stories to his darling love Savanna Atlas.',
+  image_url: 'http://whereslucian.com/images/lucian_reads.jpg'
+})
 
 // Load templates
 const templates = {
@@ -142,6 +188,7 @@ const templates = {
 
 wl.set('view engine', 'ejs')
 
+// Set up SASS complilation
 wl.use(
   sassMiddleware({
     src: __dirname + '/sass',
@@ -152,11 +199,14 @@ wl.use(
   })
 )
 wl.use(express.static(path.join( __dirname, 'public' )))
+
+
 wl.use(compression())
 
+// Paths
 wl.get('/', function(req, res) {
   let posts = getPosts(0)
-  
+
   res.render('index', { 
     posts: posts, 
     moment: moment, 
@@ -187,6 +237,36 @@ wl.get('/ajax/:page', function(req, res) {
     posts: posts
   })
 })
+
+wl.get('/post/:id', function(req, res) {
+  let dirtyId = req.params.id || 1;
+  let id = validator.isInt(dirtyId, { min: 1 }) ? parseInt(dirtyId) : 1
+  let post = getPost(id)
+  res.render('post', { 
+    post: post, 
+    moment: moment
+  })
+})
+
+wl.get('/feeds/posts', function(req, res) {
+  let posts = getPostList()
+  for(let i=0,length=posts.length;i<length;i++) {
+    let item = {
+      title: posts[i].title,
+      url: 'http://whereslucian.com/post/' + posts[i].id,
+      author: posts[i].author,
+      date: posts[i].dateAdded
+    }
+    if(posts[i].lat && posts[i].lng) {
+      item.lat = posts[i].lat;
+      item.long = posts[i].lng;
+    }
+    feed.item(item)
+  }
+
+  res.header('Content-Type', 'application/rss+xml');
+  res.send(feed.xml());
+});
 
 wl.listen(3000, function() {
   console.log('Listening')

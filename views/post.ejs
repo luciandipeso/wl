@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title><%= post.title %> | Where’s Lucian?</title>
+    <meta name="description" content="Where is he?">
+
+    <link rel="author" href="https://github.com/luciandipeso"> 
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+    <link rel="stylesheet" href="/style/style.css">
+  </head>
+  <body>
+    <div class="container"">
+      <header id="masthead">
+        <nav class="navbar fixed-top navbar-expand-sm">
+          <div class="mr-auto navbar-brand-wrapper">
+            <a class="navbar-brand" href="#!">
+              Where’s Lucian?
+            </a>
+          </div>
+          <div id="main-menu">
+            <ul class="navbar-nav">
+              <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+              <li class="nav-item"><a class="nav-link" href="/projects">Projects</a></li>
+              <li class="nav-item"><a class="nav-link" href="/about">About</a></li>
+            </ul>
+          </div> 
+          <!-- <div class="animate-search pull-left" role="search">
+            <div class="animate-search-cse">
+              <script>
+                (function() {
+                  var cx = '018285591766067027891:be6sfye5sww';
+                  var gcse = document.createElement('script');
+                  gcse.type = 'text/javascript';
+                  gcse.async = true;
+                  gcse.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') +
+                      '//www.google.com/cse/cse.js?cx=' + cx;
+                  var s = document.getElementsByTagName('script')[0];
+                  s.parentNode.insertBefore(gcse, s);
+                })();
+              </script>
+              <gcse:searchbox-only></gcse:searchbox-only>
+            </div>
+          </div> -->
+        </nav>
+      </header>
+      <div id="content">
+        <div class="posts">
+          <div class="post">
+            <% if(post.type == "essay") { %>
+              <%- include partials/essay.ejs %>
+            <% } else if(post.type == "travel") { %>
+              <%- include partials/travel.ejs %>
+            <% } %>
+          </div>
+        </div>
+      </div>
+      <footer id="mastfoot">
+              
+      </footer>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+    <script src="/js/ejs.min.js"></script>
+    <script src="/js/moment.js"></script>
+    <script>
+      const posts = [<%- JSON.stringify(post) %>]
+      var mapPosts = [],
+          maps = {}
+
+      $(function() {
+        /**
+         * Find any posts that will require maps
+         *
+         * @param array posts Post data
+         */
+        function findMapPosts(posts) {
+          for(let i=0;i<posts.length;i++) {
+            if(posts[i].postlets.length > 0) {
+              postlet = posts[i].postlets[0]
+              mapPosts.push({
+                id: posts[i].id,
+                centerLat: postlet.lat,
+                centerLng: postlet.lng,
+                postlets: posts[i].postlets
+              })
+            }
+          }
+        }
+
+        /**
+         * Initialize maps 
+         */
+        function initMaps() {
+          // Get all maps
+          for(let i=0;i<mapPosts.length;i++) {
+            let id = mapPosts[i].id
+            if(!maps.hasOwnProperty(id)) {
+              maps[id] = {
+                map: new google.maps.Map(document.getElementById("postlet-map-" + id), {
+                  zoom: 10,
+                  center: { 
+                    lat: mapPosts[i].centerLat, 
+                    lng: mapPosts[i].centerLng
+                  },
+                  mapTypeId: 'terrain'
+                }),
+                postlets: mapPosts[i].postlets,
+                marker: null,
+                path: null
+              }
+
+              let coords = []
+              for(let j=0;j<mapPosts[i].postlets.length;j++) {
+                coords.push({ 
+                  lat: mapPosts[i].postlets[j].lat,
+                  lng: mapPosts[i].postlets[j].lng
+                })
+              }
+
+              maps[id].path = new google.maps.Polyline({
+                path: coords,
+                geodesic: true,
+                strokeColor: '#FF0000',
+                strokeOpacity: 0.8,
+                strokeWeight: 3
+              })
+
+              maps[id].path.setMap(maps[id].map)
+            }
+
+            // Clear to save memory
+            mapPosts = []
+          }
+        }
+
+        // Set up maps object
+        findMapPosts(posts)
+        initMaps()
+
+        // Handle postlet/map interaction
+        $(document).on('click', '.postlet-nav > .nav-item > .btn', function() {
+            let mapId = parseInt($(this).attr('mapid')),
+                postletId = parseInt($(this).attr('id').replace('btn-postlet-', ''))
+
+            console.log(mapId)
+            console.log(maps)
+            if(!maps.hasOwnProperty(mapId)) {
+              return
+            }
+
+            let map = maps[mapId],
+                postlet = false
+
+            // Find the postlet
+            for(let i=0;i<map.postlets.length;i++) {
+              if(map.postlets[i].id == postletId) {
+                postlet = map.postlets[i]
+              }
+            }
+
+            // Remove old pin
+            if(map.marker) {
+              $('#container-map-' + mapId).find('.postlet-content').addClass('d-none')
+              map.marker.setMap(null)
+            }
+
+            // Drop new pin
+            if(postlet) {
+              map.marker = new google.maps.Marker({
+                position: { lat: postlet.lat, lng: postlet.lng },
+                map: map.map
+              })
+
+              map.map.panTo({ lat: postlet.lat, lng: postlet.lng })
+
+
+              $('#postlet-' + postletId).removeClass('d-none')
+            }
+
+        })
+      })
+
+      function sup() {
+        console.log("Sup")
+      }
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDFlTrm2SlM9N9L3cee0UTC2hMyhnrHHEQ&callback=sup">
+    </script>
+  </body>
+</html>
