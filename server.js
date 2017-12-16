@@ -58,12 +58,40 @@ function getPostList() {
   
   let query = 'SELECT p.post_id post_post_id, p.title post_title, p.subtitle post_subtitle,' +
     ' p.type post_type, p.date_added post_date_added, p.date_updated post_date_updated, p.lat post_lat,' +
-    ' p.lng post_lng, p.post post_post, p.author post_author FROM post p ORDER BY post_date_added';
+    ' p.lng post_lng, p.post post_post, p.author post_author FROM post p ORDER BY post_date_added'
 
   let rows = db.prepare(query).all()
   for(let i=0; i<rows.length; i++) {
     let row = rows[i]
     posts.push(getSparsePost(row))
+  }
+
+  return posts
+}
+
+/**
+ * Get list of all podcast posts
+ *
+ * Used for RSS feeds
+ *
+ * @return array List of all posts
+ */
+function getLucianReadsToSavannaList() {
+  let posts = []
+  
+  let query = 'SELECT post_id, title, date_added, url, size FROM lucianReadsToSavannaPost ORDER BY date_added'
+
+  let rows = db.prepare(query).all()
+  for(let i=0; i<rows.length; i++) {
+    let row = rows[i]
+    posts.push({
+      id: row.post_id,
+      title: row.title,
+      dateAdded: row.date_added || moment().format('YYYY-MM-DD HH:mm:ss'),
+      url: 'http://whereslucian.com/images/lucianreads/' + encodeURI(row.url), 
+      filePath: path.join(__dirname, 'public', 'images', 'lucianreads', row.url),
+      size: row.size || 0
+    })
   }
 
   return posts
@@ -268,6 +296,27 @@ wl.get('/feeds/posts', function(req, res) {
   res.send(feed.xml());
 });
 
-wl.listen(3000, function() {
+wl.get('/feeds/lucian-reads-to-savanna', function(req, res) {
+  lucianReadsToSavannaFeed.items = []
+
+  let posts = getLucianReadsToSavannaList()
+  for(let i=0,length=posts.length;i<length;i++) {
+    let post = posts[i]
+    let item = {
+      guid: "I_Love_Savanna_Atlas:" + post.id,
+      title: post.title,
+      url: post.url,
+      author: 'Lucian DiPeso',
+      date: post.dateAdded,
+      enclosure: { url: post.url, file: post.filePath }
+    }
+    lucianReadsToSavannaFeed.item(item)
+  }
+
+  res.header('Content-Type', 'application/rss+xml');
+  res.send(lucianReadsToSavannaFeed.xml());
+});
+
+wl.listen(nconf.get('port') || 3000, function() {
   console.log('Listening')
 })
