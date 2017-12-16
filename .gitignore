@@ -4,3 +4,4 @@ db/*
 conf/*
 build
 /public/images
+/public/projects
