@@ -15,7 +15,6 @@ const rss = require('rss')
 nconf.argv()
      .env()
 
-
 const env = ["prod", "dev"].includes(nconf.get('NODE_ENV')) ? nconf.get('NODE_ENV') : "dev"
 nconf.file({ file: path.join(__dirname, "conf", env + ".conf.json") })
 
