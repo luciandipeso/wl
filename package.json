@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Where's Lucian website.",
   "main": "server.js",
+  "repository": "https://github.com/luciandipeso/wl",
   "dependencies": {
     "async": "^2.6.0",
     "better-sqlite3": "^4.0.3",
