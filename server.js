@@ -232,6 +232,14 @@ wl.use(express.static(path.join( __dirname, 'public' )))
 wl.use(compression())
 
 // Paths
+wl.get('/about', function(req, res) {
+  res.render('about')
+})
+
+wl.get('/projects', function(req, res) {
+  res.render('projects')
+})
+
 wl.get('/', function(req, res) {
   let posts = getPosts(0)
 
@@ -294,7 +302,7 @@ wl.get('/feeds/posts', function(req, res) {
 
   res.header('Content-Type', 'application/rss+xml');
   res.send(feed.xml());
-});
+})
 
 wl.get('/feeds/lucian-reads-to-savanna', function(req, res) {
   lucianReadsToSavannaFeed.items = []
@@ -315,7 +323,7 @@ wl.get('/feeds/lucian-reads-to-savanna', function(req, res) {
 
   res.header('Content-Type', 'application/rss+xml');
   res.send(lucianReadsToSavannaFeed.xml());
-});
+})
 
 wl.listen(nconf.get('port') || 3000, function() {
   console.log('Listening')

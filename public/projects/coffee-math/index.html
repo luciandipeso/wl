@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Coffee Math</title>
+    <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+    <link href="css/bootstrap-responsive.min.css" rel="stylesheet" media="screen">
+    <link href="css/main.css" rel="stylesheet" media="screen">
+  </head>
+  <body>
+
+    <div class="container">
+      <div class="row">
+        <div class="span12">
+          <h2>Ingredients</h2>
+          <div id="ingredients-wrapper">
+            
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="span6">
+          <h2>Equation</h2>
+          <div id="equation-wrapper">
+          </div>
+        </div>
+
+        <div class="span6">
+          <h2>Results</h2>
+          <div id="results-wrapper">
+          </div>
+          <div id="bar-wrapper"></div>
+        </div>
+      </div>
+    </div>
+    
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/jquery.awesomeCloud-0.2.min.js"></script>
+    <script>
+    /**
+     * All possible ingredients, in their display order
+     *
+     * The display order is also the axis this ingredient will lie on in the 
+     * hypercube.
+     *
+     * Each object is:
+     * {
+     *   key: (string) The identifying key for this ingredient
+     *   string: (string) The human-readable string
+     *   color: (string) A string representing the color for this ingredient
+     * }
+     *
+     * @var array
+     */
+    var ingredients = [
+      { key: 'foam', string: 'Foam', color: '#c4988c' },
+
+      { key: 'cream', string: 'Cream', color: '#c4a78c' },
+      { key: 'half-half', string: 'Half &amp; half', color: '#c4966c' },
+      { key: 'steamed-milk', string: 'Steamed milk', color: '#c47f6c' },
+      { key: 'condensed-milk', string: 'Condensed milk', color: '#c18a98' },
+      { key: 'milk', string: 'Milk', color: '#c16a82' },
+
+      { key: 'water', string: 'Water', color: '#66b98b' },
+      { key: 'ice', string: 'Ice', color: '#84b99c' },
+
+      { key: 'chocolate', string: 'Chocolate', color: '#602d20' },
+      { key: 'whiskey', string: 'Whiskey', color: '#571d2d' },
+
+      { key: 'drip', string: 'Drip coffee', color: '#634223' },
+      { key: 'espresso', string: 'Espresso', color: '#633023' }
+    ];
+
+    /**
+     * All possible coffees
+     *
+     * Each object is:
+     * {
+     *   string: (string) The human-readable string
+     *   ingredients: (object) An object representing the ratio of ingredients
+     * }
+     *
+     * @var object
+     */
+    var coffees = {
+      'antoccino': {
+        string: 'Antoccino',
+        ingredients: {
+          'steamed-milk': 4,
+          'espresso': 4
+        }
+      },
+
+      'black-eye': {
+        string: 'Shot in the dark',
+        ingredients: {
+          'drip': 8,
+          'espresso': 3
+        }
+      },
+
+      'triple-death': {
+        string: 'Triple death',
+        ingredients: {
+          'drip': 8,
+          'espresso': 4.5
+        }
+      },
+
+      'americano': {
+        string: 'Americano',
+        ingredients: {
+          'water': 8,
+          'espresso': 1.5
+        }
+      },
+
+      'iced-americano': {
+        string: 'Iced americano',
+        ingredients: {
+          'ice': 4,
+          'water': 4,
+          'espresso': 1.5
+        }
+      },
+
+      'cafe-au-lait': {
+        string: 'Café au lait',
+        ingredients: {
+          'milk': 4,
+          'drip': 4
+        }
+      },
+
+      'cafe-bombon': {
+        string: 'Café bombón',
+        ingredients: {
+          'condensed-milk': 4,
+          'espresso': 4
+        }
+      },
+
+      'latte': {
+        string: 'Latté',
+        ingredients: {
+          'steamed-milk': 8,
+          'espresso': 1.5
+        }
+      },
+
+      'latte-breve': {
+        string: 'Latté brevé',
+        ingredients: {
+          'half-half': 8,
+          'espresso': 1.5
+        }
+      },
+
+      'iced-latte': {
+        string: 'Iced latté',
+        ingredients: {
+          'ice': 3,
+          'milk': 5,
+          'espresso': 1.5
+        }
+      },
+
+      'iced-latte-breve': {
+        string: 'Iced latté brevé',
+        ingredients: {
+          'ice': 3,
+          'half-half': 5,
+          'espresso': 1.5
+        }
+      },
+
+      'mocha': {
+        string: 'Mocha',
+        ingredients: {
+          'steamed-milk': 8,
+          'espresso': 1.5,
+          'chocolate': 1.5
+        }
+      },
+
+      'mocha-breve': {
+        string: 'Mocha brevé',
+        ingredients: {
+          'half-half': 8,
+          'espresso': 1.5,
+          'chocolate': 1.5
+        }
+      },
+
+      'iced-mocha': {
+        string: 'Iced mocha',
+        ingredients: {
+          'ice': 3,
+          'milk': 5,
+          'espresso': 1.5,
+          'chocolate': 1.5
+        }
+      },
+
+      'iced-mocha-breve': {
+        string: 'Iced mocha brevé',
+        ingredients: {
+          'ice': 3,
+          'half-half': 5,
+          'espresso': 1.5,
+          'chocolate': 1.5
+        }
+      },
+
+      'cappuccino': {
+        string: 'Cappuccino',
+        ingredients: {
+          'espresso': 1.5,
+          'steamed-milk': 3,
+          'foam': 2
+        }
+      },
+
+      'doppio': {
+        string: 'Doppio',
+        ingredients: {
+          'espresso': 3
+        }
+      },
+
+      'drip-coffee': {
+        string: 'Drip coffee',
+        ingredients: {
+          'drip': 8
+        }
+      },
+
+      'iced-coffee': {
+        string: 'Iced coffee',
+        ingredients: {
+          'drip': 5,
+          'ice': 3
+        }
+      },
+
+      'irish-coffee': {
+        string: 'Irish coffee',
+        ingredients: {
+          'drip': 5,
+          'whiskey': 1.5,
+          'cream': 1.5
+        }
+      },
+
+      'macchiato': {
+        string: 'Macchiato',
+        ingredients: {
+          'espresso': 1.5,
+          'foam': 0.5
+        }
+      },
+
+      'whiskey': {
+        string: 'That’s not coffee',
+        ingredients: {
+          'whiskey': 1
+        }
+      }
+    };
+
+    /**
+     * If the display logic is running
+     *
+     * @var bool
+     */
+    var running = false;
+
+    /**
+     * Bootstrap
+     */
+    function init() {
+      init_ingredients();
+      init_listeners();
+      init_hypercube();
+    }
+
+    /**
+     * Display results
+     *
+     * @param array coords The coordinates of the equation
+     * @param array distances The calculated distances between the equation and coffees
+     */
+    function display(coords, distances) {
+      if(running) {
+        window.setTimeout(function() {
+          display_coffees(distances);
+        }, 200);
+      }
+
+      running = true;
+
+      display_ratio(coords);
+      display_coffees(distances);
+
+      running = false;
+    }
+
+    /**
+     * Display coffees
+     *
+     * @param array distances The calculated distances between the equation and coffees
+     * @param float exclude Distances less than this number will be excluded
+     */
+    function display_coffees(distances, exclude)
+    {
+      var results_wrapper = $('#results-wrapper');
+      exclude = exclude || 0.25;
+
+      results_wrapper.empty();
+
+      var i=0,
+      length = distances.length;
+      for(; i<length; i++) {
+        var coffee = coffees[distances[i].key],
+            weight = 1-distances[i].distance;
+
+        weight = (weight < 0) ? 0 : weight;
+
+        if(weight < exclude)
+        {
+          continue;
+        }
+
+        $(
+          '<p data-weight="' + weight + '">' + 
+            coffee.string + ' ' +
+            '<span class="btn btn-inverse btn-mini">' + (parseInt((weight * 100), 10)) + '% match</span>' +
+          '</p>'
+        )
+        .appendTo(results_wrapper)
+        .css('opacity', weight);
+      }
+
+      if(results_wrapper.is(':empty') && $('#equation-wrapper').find('.eq-component').length) {
+        results_wrapper.append('<p class="empty">No matches found</p>')
+      }
+    }
+
+    /**
+     * Display ingredient ratio
+     *
+     * @param array coords The coords of the equation
+     */
+    function display_ratio(coords)
+    {
+      var bar_wrapper = $('#bar-wrapper');
+
+      bar_wrapper.empty();
+      bar_wrapper.append('<div class="progress"></div>');
+
+      var i=0,
+          length = coords.length;
+      for(; i<length; i++) {
+        if(coords[i] > 0)
+        {
+          var color = ingredients[i].color,
+              width = coords[i]*100;
+
+          $(
+            '<div class="bar" style="background-color: ' + color + '; width: ' + width + '%">' +
+              ingredients[i].string + 
+            '</div>'
+          ).appendTo(bar_wrapper.find('.progress'));
+        }
+
+      }
+    }
+
+    /**
+     * Init the ingredient list
+     */
+    function init_ingredients() {
+      var i = 0, 
+          length = ingredients.length, 
+          wrapper = $('#ingredients-wrapper');
+
+      for(; i<length; i++) {
+        var ingredient = ingredients[i];
+        var row_index = Math.floor(i/6);
+        var row = wrapper.find('div[class*="row"]:eq(' + row_index + ')');
+        if(!row.length) {
+          row = $('<div class="row-fluid"></div>').appendTo(wrapper);
+        }
+
+        $(
+          '<div class="span2">' + 
+            '<a href="#" class="ingredient" id="' + ingredient.key + '" style="background-color: ' + ingredient.color + '">' + 
+              ingredient.string + 
+            '</a>' + 
+          '</div>'
+        ).appendTo(row);
+      }
+    }
+
+    /**
+     * Init all the event handlers
+     */
+    function init_listeners() {
+      $('#ingredients-wrapper').on('click', 'a.ingredient', function(event) {
+        event.preventDefault();
+        toggle_ingredient(this.id);
+      });
+
+      $('#equation-wrapper').on('click', 'button.remove', function(event) {
+        var component = $(this).closest('.eq-component'),
+            ingredient_key = component.data('ingredient');
+
+        remove_ingredient(ingredient_key);
+      });
+
+      $('#equation-wrapper').on('click', '.coefficient-menu input', function(event) {
+        event.stopPropagation();
+      });
+
+      $('#equation-wrapper').on('change', '.coefficient-menu input', function(event) {
+        var coefficient = $(this).closest('.coefficient-menu').prev('.coefficient'),
+            value = ($(this).val() > 0) ? $(this).val() : 0;
+
+        coefficient
+          .html(value + '<span class="caret"></span>')
+          .data('value', value);
+
+        $(this).closest('.eq-component').trigger('coffee.change');
+      });
+
+      $(document).on('coffee.change', function(event) {
+        var coords = get_eq_coords();
+        var distances = get_distances(coords);
+        
+        display(coords, distances);
+      });
+    }
+
+    /**
+     * Init the hypercube points
+     */
+    function init_hypercube() {
+      $.each(coffees, function(coffee_key) {
+        //Determine the ratios of each ingredient based on the total fl oz
+        var total = 0,
+            coffee = this;
+        $.each(this.ingredients, function(ingredient_key, oz) {
+          total += oz;
+        });
+
+        //Add in coords for this coffee
+        var i = 0,
+            length = ingredients.length,
+            coords = [];
+        for(; i<length; i++) {
+          var ingredient = ingredients[i],
+              ratio = coffee.ingredients[ingredient.key] / total || 0;
+          coords.push(ratio);
+        }
+
+        coffees[coffee_key].coords = coords;
+      });
+    }
+
+    /**
+     * Add or remove an ingredient to or from the equation
+     *
+     * @param string ingredient_key
+     */
+    function toggle_ingredient(ingredient_key) {
+      if($('#equation-wrapper').find('#eq-' + ingredient_key + '-wrapper').length) {
+        // Remove this ingredient
+        return remove_ingredient(ingredient_key);
+      }
+      add_ingredient(ingredient_key);
+    }
+
+    /**
+     * Add an ingredient to the equation if it is not already present
+     *
+     * @param string ingredient_key
+     */
+    function add_ingredient(ingredient_key) {
+      var wrapper = $('#equation-wrapper');
+      if(wrapper.find('#eq-' + ingredient_key + '-wrapper').length) {
+        // This has already been added
+        return;
+      } 
+
+      var ingredient = find_ingredient(ingredient_key);
+
+      $(
+        '<div class="eq-component btn-group" id="eq-' + ingredient.key + '-wrapper">' +
+          '<a class="btn dropdown-toggle coefficient" data-value="1" data-toggle="dropdown" href="#">' + 
+            '1' +
+            '<span class="caret"></span>' +
+          '</a>' +
+          '<ul class="coefficient-menu dropdown-menu">' +
+            '<input type="number" min="0" max="999" size="1" value="1">' +
+          '</ul>' +
+          '<button class="ingredient btn" style="background-color: ' + ingredient.color + '">' +
+            ingredient.string + 
+          '</button>' +
+          '<button class="remove btn" style="background-color: ' + ingredient.color + '">&times;</button>' +
+        '</div>'
+      )
+      .appendTo(wrapper)
+      .data('ingredient', ingredient.key)
+      .data('axis', ingredient.axis)
+      .trigger('coffee.change');
+
+      $('#' + ingredient_key).fadeTo(200, 0.5);
+    }
+
+    /**
+     * Removes an ingredient from the equation
+     *
+     * @param string ingredient_key
+     */
+    function remove_ingredient(ingredient_key) {
+      var wrapper = $('#equation-wrapper'),
+          component = wrapper.find('#eq-' + ingredient_key + '-wrapper');
+      if(!component.length) {
+        // This has already been removed
+        return;
+      }
+
+      $('#' + ingredient_key).fadeTo(200, 1); 
+      component.remove();
+      $(document).trigger('coffee.change');
+    }
+
+    /**
+     * Finds the ingredient object corresponding to the supplied ingredient key
+     *
+     * @param string ingredient_key
+     * @param object
+     */
+    function find_ingredient(ingredient_key) {
+      var i = 0, 
+          length = ingredients.length;
+
+      for(; i<length; i++) {
+        if(ingredients[i].key === ingredient_key) {
+          return $.extend(true, {}, ingredients[i], { axis: i });
+        }
+      }
+
+      return false;
+    }
+
+    /**
+     * Generates normalized coordinates for the current equation
+     *
+     * @return array
+     */
+    function get_eq_coords() {
+      if($('#equation-wrapper').find('.eq-component').length <= 0) {
+        return [];
+      }
+
+      // Sparse array
+      var sparse_coords = {},
+          coords = [],
+          total = 0;
+
+      $('#equation-wrapper').find('.eq-component').each(function() {
+        var value = parseInt($(this).find('.coefficient').data('value'), 10);
+        total += value;
+        sparse_coords[$(this).data('axis')] = value;
+      });
+
+      // Convert our sparse array to a dense array
+      var i = 0,
+          length = ingredients.length;
+      for(; i<length; i++) {
+        var ratio = sparse_coords[i] / total || 0;
+        coords.push(ratio);
+      }
+
+      return coords;
+    }
+
+    /**
+     * Calculates the distances between the supplied coords and each coffee
+     *
+     * Returns an array of objects sorted by distance in ascending order. 
+     *
+     * Each object in the format of:
+     *
+     * {
+     *   distance: (float) Distance from the coffee definitions point
+     *   key: (string) The key for the corresponding coffee
+     * }
+     *
+     * @param array coords The coords to compare against
+     * @return array
+     */
+    function get_distances(coords) {
+      if(!coords.length) {
+        return [];
+      }
+
+      // Now calc the distance between the above coords and our hypercube
+      var distances = [],
+          coord_length = coords.length;
+
+      $.each(coffees, function(coffee_key) {
+        var i = 0,
+            distance = 0,
+            coffee = this;
+
+        for(; i<coord_length; i++) {
+          distance += Math.pow(coffee.coords[i] - coords[i], 2);
+        }
+        distances.push({ key: coffee_key, distance: Math.sqrt(distance) });
+      });
+      
+      // Sort the distances
+      distances.sort(function(a,b) {
+        if(a.distance === b.distance) {
+          return 0;
+        }
+
+        return a.distance - b.distance;
+      });
+
+      return distances;
+    }
+
+    $(function() {
+      init();
+    });
+    </script>
+  </body>
+</html>

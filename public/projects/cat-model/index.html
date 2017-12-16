@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>So many cats</title>
+
+    <!-- Bootstrap -->
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
+
+    <link rel="stylesheet" href="nvd3.css">
+
+
+    <style>
+    @-moz-document url-prefix() {
+      fieldset { display: table-cell; }
+    }
+
+    fieldset fieldset legend
+    {
+      font-size: 14px;
+      border-bottom: 0;
+      font-weight: 700;
+    }
+    </style>
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="col-xs-12">
+          <h1>Cats!</h1>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-12">
+          <div id="spinner">
+            <button class="btn btn-primary" id="run_simulation">Run simulation</button>
+          </div>
+          <div id="chart"><svg style="width: 100%; height: 500px"></svg></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-sm-12">
+          <form class="well well-small form-horizontal">
+            <button type="button" class="btn btn-default pull-right" data-toggle="collapse" data-target="#settings">
+              <i class="glyphicon glyphicon-chevron-down"></i>
+            </button>
+
+            <div id="settings" class="collapse in" style="padding-top: 15px">
+              <fieldset>
+                <legend>Simulation settings</legend>
+                <div class="row">
+                  <div class="col-sm-6">
+                    <div class="form-group form-group-sm">
+                      <label for="simulation_length" class="col-sm-6 control-label">Simulation length</label>
+                      <div class="input-group">
+                        <input type="number" class="form-control" id="simulation_length" min="1" value="24">
+                        <span class="input-group-addon">months</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-sm-6">
+                    <div class="form-group form-group-sm">
+                      <label for="init_pop" class="col-sm-6 control-label">Starting population size</label>
+                      <div class="input-group">
+                        <input type="number" class="form-control" id="init_pop" min="1" value="1">
+                        <span class="input-group-addon">cats</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-sm-6">
+                    <div class="form-group form-group-sm">
+                      <label for="simulation_count" class="col-sm-6 control-label">Number of simulations</label>
+                      <div class="input-group">
+                        <input type="number" class="form-control" id="simulation_count" min="1" max="10" value="1">
+                        <span class="input-group-addon">runs</span>
+                      </div>
+                      <p class="help-block col-sm-offset-6">The number of simulations to run</p>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Cat settings</legend>
+                <div class="row">
+                  <div class="col-sm-6">
+                    <div class="form-group form-group-sm">
+                      <label for="maturation_interval" class="col-sm-6 control-label">Maturation interval</label>
+                      <div class="input-group">
+                        <input type="number" class="form-control" id="maturation_interval" min="1" value="6">
+                        <span class="input-group-addon">months</span>
+                      </div>
+                      <p class="help-block col-sm-offset-6">The number of months for a cat to become sexually mature</p>
+                    </div>
+                  </div>
+                  <div class="col-sm-6">
+                    <div class="form-group form-group-sm">
+                      <label for="gestation_interval" class="col-sm-6 control-label">Gestation interval</label>
+                      <div class="input-group">
+                        <input type="number" class="form-control" id="gestation_interval" min="1" value="3">
+                        <span class="input-group-addon">months</span>
+                      </div>
+                      <p class="help-block col-sm-offset-6">The number of months necessary between impregnation and birth</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-sm-6">
+                    <div class="form-group form-group-sm">
+                      <label for="pregnancy_interval" class="col-sm-6 control-label">Interval between pregnancies</label>
+                      <div class="input-group">
+                        <input type="number" class="form-control" id="pregnancy_interval" min="0" value="0">
+                        <span class="input-group-addon">days</span>
+                      </div>
+                      <p class="help-block col-sm-offset-6">The number of days between a cat giving birth and becoming pregnant</p>
+                    </div>
+                  </div>
+
+                  <div class="col-sm-6">
+                    <div class="form-group form-group-sm">
+                      <label for="fertile_interval" class="col-sm-6 control-label">Fertile interval</label>
+                      <div class="input-group">
+                        <input type="number" class="form-control" id="fertile_interval" min="1" value="18">
+                        <span class="input-group-addon">months</span>
+                      </div>
+                      <p class="help-block col-sm-offset-6">The number of months a cat can continue to reproduce</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-sm-6">
+                    <div class="form-group form-group-sm">
+                      <label for="impregnation_rate" class="col-sm-6 control-label">Impregnation rate</label>
+                      <div class="input-group">
+                        <input type="number" class="form-control" id="impregnation_rate" min="0" value="99">
+                        <span class="input-group-addon">%</span>
+                      </div>
+                      <p class="help-block col-sm-offset-6">The rate of available females impregnated per day</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-sm-6">
+                    <div class="form-group form-group-sm">
+                      <label class="col-sm-6 control-label">Lifespan</label>
+                      <div class="checkbox">
+                        <label><input type="checkbox" id="cats_die">Cats die</label>
+                      </div>
+                    </div>
+                    <div class="form-group form-group-sm">
+                      <label for="cat_lifespan" class="col-sm-6 control-label">Cat lifespan</label>
+                      <div class="input-group">
+                        <input type="number" disabled class="form-control" id="cat_lifespan" value="24" min="1">
+                        <span class="input-group-addon">
+                          months
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend>Litter settings</legend>
+                <div class="row">
+                  <div class="col-sm-6">
+                    <div class="form-group form-group-sm">
+                      <label for="min_litter_size" class="col-sm-6 control-label">Minimum litter size</label>
+                      <div class="input-group">
+                        <input type="number" class="form-control" id="min_litter_size" min="1" value="1">
+                        <span class="input-group-addon">kittens</span>
+                      </div>
+                    </div>
+                    <div class="form-group form-group-sm">
+                      <label for="max_litter_size" class="col-sm-6 control-label">Maximum litter size</label>
+                      <div class="input-group">
+                        <input type="number" class="form-control" id="max_litter_size" min="1" value="6">
+                        <span class="input-group-addon">kittens</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-sm-6">
+                    <div class="form-group form-group-sm">
+                      <label for="litter_dist" class="col-sm-6 control-label">Litter size distribution</label>
+                      <div class="input-group">
+                        <select id="litter_dist" class="form-control">
+                          <option value="uniform">Uniform</option>
+                          <option value="normal" selected>Normal</option>
+                        </select>
+                      </div>
+                      <p class="help-block col-sm-offset-6">The statistical distribution from which to sample the litter size</p>
+                    </div>
+                    <div class="form-group form-group-sm">
+                      <label for="sex_dist" class="col-sm-6 control-label">Sex ratio distribution</label>
+                      <div class="input-group">
+                        <select id="sex_dist" class="form-control">
+                          <option value="uniform">Uniform</option>
+                          <option value="normal" selected>Normal</option>
+                        </select>
+                      </div>
+                      <p class="help-block col-sm-offset-6">The statistical distribution from which to sample the litter sex ratio</p>
+                    </div>
+                  </div>
+
+                </div>
+              </fieldset>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    <script src="http://d3js.org/d3.v3.js"></script>
+    <script src="nvd3.js"></script>
+    <script src="spinner.js"></script>
+    <script src="spin.js"></script>
+
+    <script>
+    $(function() {
+      $(document).on('change', '#cats_die', function(e) {
+        $("#cat_lifespan").prop('disabled', !this.checked);
+        $("#cat_lifespan").attr('disabled', !this.checked);
+      });
+
+      $(document).on('click', '#run_simulation', function(e) {
+        $(this).prop('disabled', true);
+        $(this).attr('disabled', true);
+        $('#spinner').spin("small");
+
+        $.getJSON("fetch-data.php", {
+          simulation_length: $("#simulation_length").val(),
+          init_pop: $("#init_pop").val(),
+          simulation_count: $("#simulation_count").val(),
+
+          maturation_interval: $("#maturation_interval").val(),
+          gestation_interval: $("#gestation_interval").val(),
+          pregnancy_interval: $("#pregnancy_interval").val(),
+          fertile_interval: $("#fertile_interval").val(),
+          impregnation_rate: $("#impregnation_rate").val()/100,
+
+          cats_die: $("#cats_die").get(0).checked ? '1' : '0',
+          cat_lifespan: $("#cat_lifespan").val(),
+
+          min_litter_size: $("#min_litter_size").val(),
+          max_litter_size: $("#max_litter_size").val(),
+
+          sex_dist: $("#sex_dist").val(),
+          litter_dist: $("#litter_dist").val(),
+        }).done(function(json) {
+          $('#run_simulation').prop('disabled', false);
+          $('#run_simulation').attr('disabled', false);
+          $('#spinner').spin(false);
+
+          nv.addGraph(function() {
+            var chart = nv.models.lineChart()
+              .margin({left: 100})
+              .useInteractiveGuideline(true)
+              .showYAxis(true);
+
+            chart.xAxis
+              .axisLabel('Time (months)')
+              .tickFormat(d3.format(',d'));
+
+            chart.yAxis
+              .axisLabel('Population size')
+              .tickFormat(d3.format(',d'));
+
+            var data = [], name, values;
+            for(var i in json) {
+              if(i === 'avg') {
+                name = "Average";
+              } else {
+                name = i.charAt(0).toUpperCase() + i.slice(1).replace('.', ' ');
+              }
+
+              values = $.map(json[i], function(val, j) {
+                return {x: j+1, y: val}
+              });
+
+              data.push({
+                'values': values,
+                'key': name,
+                'area': false
+              });
+            }
+
+            console.debug(data);
+
+            d3.select('#chart svg')
+              .datum(data)
+              .transition().duration(500)
+              .call(chart);
+
+            nv.utils.windowResize(chart.update);
+
+            return chart;
+          });
+
+        }).fail(function(xhr, text_status, error) {
+          console.log(text_status + ', ' + error);
+          $('#run_simulation').prop('disabled', false);
+          $('#run_simulation').attr('disabled', false);
+          $('#spinner').spin(false);
+        });
+      });
+    });
+    </script>
+    <script>
+    
+    </script>
+  </body>
+</html>
