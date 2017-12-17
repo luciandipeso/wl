@@ -51,7 +51,7 @@
       <div id="content">
         <div class="posts">
           <% for(let i=0;i<posts.length; i++) { %>
-            <% var post = posts[i] %>
+            <% let post = posts[i] %>
             <div class="post">
               <% if(post.type == "essay") { %>
                 <%- include partials/essay.ejs %>

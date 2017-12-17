@@ -370,6 +370,20 @@ article footer .citations
 }
 
 //
+// Videos
+//
+.videos dl dd
+{
+  padding-bottom: .5rem;
+}
+
+.videos dl img.float-left
+{
+  padding-right: $nav-link-padding-x;
+  padding-bottom: $nav-link-padding-y;
+}
+
+//
 // Footer
 //
 

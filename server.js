@@ -3,6 +3,7 @@ const compression = require('compression')
 const express = require('express')
 const wl = express()
 const sassMiddleware = require('node-sass-middleware')
+const cookieParser = require('cookie-parser')
 const fs = require('fs')
 const async = require('async')
 const path = require('path')
@@ -11,6 +12,9 @@ const validator = require('validator')
 const nconf = require('nconf')
 const moment = require('moment')
 const rss = require('rss')
+const google = require('googleapis')
+const OAuth2 = google.auth.OAuth2
+const Autolinker = require('autolinker')
 
 nconf.argv()
      .env()
@@ -20,6 +24,132 @@ nconf.file({ file: path.join(__dirname, "conf", env + ".conf.json") })
 
 const dbFile = path.join(__dirname, nconf.get('dbPath'), nconf.get('dbFile')) || "wl.db"
 const db = new Database(dbFile, { readonly: true });
+
+const oauth2 = new OAuth2(
+  nconf.get('oauth_client_id') || "",
+  nconf.get('oauth_client_secret') || "",
+  nconf.get('oauth_redirect_url') || ""
+)
+
+const youtube = google.youtube({
+  version: 'v3',
+  auth: oauth2
+})
+
+/**
+ * Check if we need to authenticate again
+ *
+ * @param obj cookies The request cookies
+ * @return bool 
+ */
+function isOAuthenticated(cookies) {
+  if(!cookies.hasOwnProperty('oauth_token')) {
+    return false
+  }
+
+  let token = JSON.parse(cookies.oauth_token)
+  let expiry = new Date(token.expiry_date)
+  if(expiry > new Date()) {
+    return true
+  }
+  return false
+}
+
+/**
+ * Get a list of YouTube videos
+ *
+ * Finds all YouTube videos associated with specified playlists.
+ * Once done, calls finalCallback with parameters err and lists
+ *
+ * @param function finalCallback
+ */
+function getYouTubeVideos(finalCallback) {
+  let lists = []
+
+  let query = 'SELECT playlist_id, youtube_id, title FROM youTubePlaylists ORDER BY title'
+
+  let rows = db.prepare(query).all()
+  async.each(rows, function(row, callback) {
+    youtube.playlistItems.list({
+      part: 'id,snippet',
+      playlistId: row.youtube_id,
+      maxResults: 30
+    }, function(err, data, response) {
+      let videos = [], totalVideoCount = 0, nextPageToken = false
+      if(!err && data.hasOwnProperty('items')) {
+        for(let i=0,length=data.items.length;i<length;i++) {
+          videos.push({ 
+            title: data.items[i].snippet.title,
+            id: data.items[i].snippet.resourceId.videoId,
+            thumbnailUrl: data.items[i].snippet.thumbnails.default.url,
+            description: Autolinker.link(data.items[i].snippet.description, { newWindow: true })
+          })
+        }
+
+        if(data.hasOwnProperty('nextPageToken')) {
+          nextPageToken = data.nextPageToken
+        }
+
+        totalVideoCount = data.pageInfo.totalResults
+      }
+
+      lists.push({
+        id: row.playlist_id,
+        youtube_id: row.youtube_id,
+        title: row.title,
+        videos: videos,
+        totalVideoCount: totalVideoCount,
+        nextPageToken: nextPageToken
+      })
+
+      callback()
+    })
+  }, function(err) {
+    finalCallback(err, lists)
+  })
+}
+
+function getYouTubeVideosById(id, finalCallback, pageToken) {
+  let videos = []
+  pageToken = pageToken || false
+
+  let query = 'SELECT playlist_id, youtube_id FROM youTubePlaylists WHERE playlist_id = ?'
+  let row = db.prepare(query).get(id)
+
+  let youtubeParams = {
+    part: 'id,snippet',
+    playlistId: row.youtube_id,
+    maxResults: 30
+  }
+  if(pageToken) {
+    youtubeParams.pageToken = pageToken
+  }
+  youtube.playlistItems.list(youtubeParams, function(err, data, response) {
+    let totalVideoCount = 0, nextPageToken = false
+    if(!err && data.hasOwnProperty('items')) {
+      for(let i=0,length=data.items.length;i<length;i++) {
+        videos.push({ 
+          title: data.items[i].snippet.title,
+          id: data.items[i].snippet.resourceId.videoId,
+          thumbnailUrl: data.items[i].snippet.thumbnails.default.url,
+          description: Autolinker.link(data.items[i].snippet.description, { newWindow: true })
+        })
+      }
+
+      if(data.hasOwnProperty('nextPageToken')) {
+        nextPageToken = data.nextPageToken
+      }
+
+      totalVideoCount = data.pageInfo.totalResults
+    }
+
+    finalCallback(err, {
+      nextPageToken: nextPageToken,
+      totalVideoCount: totalVideoCount,
+      videos: videos
+    })
+  })
+}
 
 /**
  * Gets a post without child objects
@@ -210,7 +340,8 @@ const lucianReadsToSavannaFeed = new rss({
 // Load templates
 const templates = {
   essay: fs.readFileSync(path.join(__dirname, 'views', 'partials', 'essay.ejs'), 'utf-8'),
-  travel: fs.readFileSync(path.join(__dirname, 'views', 'partials', 'travel.ejs'), 'utf-8')
+  travel: fs.readFileSync(path.join(__dirname, 'views', 'partials', 'travel.ejs'), 'utf-8'),
+  video: fs.readFileSync(path.join(__dirname, 'views', 'partials', 'video.ejs'), 'utf-8')
 }
 
 wl.set('view engine', 'ejs')
@@ -227,7 +358,7 @@ wl.use(
 )
 wl.use(express.static(path.join( __dirname, 'public' )))
 
-
+wl.use(cookieParser())
 wl.use(compression())
 
 // Paths
@@ -237,6 +368,63 @@ wl.get('/about', function(req, res) {
 
 wl.get('/projects', function(req, res) {
   res.render('projects')
+})
+
+wl.get('/videos', function(req, res) {
+  if(!isOAuthenticated(req.cookies)) {
+    let scopes = [
+      'https://www.googleapis.com/auth/youtube.readonly'
+    ]
+
+    let url = oauth2.generateAuthUrl({
+      scope: scopes,
+      access_type: 'online'
+    });
+
+    res.redirect(url)
+    return
+  }
+
+  let tokens = JSON.parse(req.cookies.oauth_token)
+  oauth2.credentials = tokens
+  getYouTubeVideos(function(err, lists) {
+    res.render('videos', { 
+      lists: lists,
+      templates: templates
+    })
+  })
+})
+
+wl.get('/ajax/get-videos/:id/:pageToken', function(req, res) {
+  let dirtyId = req.params.id || "";
+  let id = validator.isInt(dirtyId, { min: 1 }) ? parseInt(dirtyId) : false
+
+  let dirtyPageToken = req.params.pageToken || "";
+  let pageToken = validator.isAlphanumeric(dirtyPageToken) && dirtyPageToken != "" ? dirtyPageToken : false
+  if(!isOAuthenticated(req.cookies) || !pageToken || !id) {
+    // TODO: Actually send proper headers
+    res.send({
+      err: 403,
+      message: "Not authenticated"
+    })
+    return
+  }
+
+  let tokens = JSON.parse(req.cookies.oauth_token)
+  oauth2.credentials = tokens
+  getYouTubeVideosById(id, function(err, data) {
+    res.send(data)
+  }, pageToken)
+})
+
+wl.get('/oauth', function(req, res) {
+  let authCode = req.query.code
+  oauth2.getToken(authCode, function(err, tokens) {
+    if (!err) {
+      res.cookie('oauth_token', JSON.stringify(tokens), { expire: new Date(1513476373919) })
+    }
+    res.redirect('/videos')
+  })
 })
 
 wl.get('/', function(req, res) {
