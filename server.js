@@ -43,7 +43,7 @@ const youtube = google.youtube({
  * @return bool 
  */
 function isOAuthenticated(cookies) {
-  if(!cookies.hasOwnProperty('oauth_token')) {
+  if(!cookies || !cookies.hasOwnProperty('oauth_token')) {
     return false
   }
 
