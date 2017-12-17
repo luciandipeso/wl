@@ -109,6 +109,16 @@ function getYouTubeVideos(finalCallback) {
   })
 }
 
+/**
+ * Get a list of YouTube videos for a specific playlist
+ *
+ * Finds all YouTube videos associated with the specified playlist.
+ * Once done, calls finalCallback with parameters err and videoData
+ *
+ * @param int id The playlist ID in the SQL database
+ * @param function finalCallback
+ * @param string pageToken The page token to send to Google APIs
+ */
 function getYouTubeVideosById(id, finalCallback, pageToken) {
   let videos = []
   pageToken = pageToken || false
