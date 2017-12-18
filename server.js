@@ -25,13 +25,13 @@ nconf.file({ file: path.join(__dirname, "conf", env + ".conf.json") })
 const dbFile = path.join(__dirname, nconf.get('dbPath'), nconf.get('dbFile')) || "wl.db"
 const db = new Database(dbFile, { readonly: true });
 
-const oauth2 = new OAuth2(
+var oauth2 = new OAuth2(
   nconf.get('oauth_client_id') || "",
   nconf.get('oauth_client_secret') || "",
   nconf.get('oauth_redirect_url') || ""
 )
 
-const youtube = google.youtube({
+var youtube = google.youtube({
   version: 'v3',
   auth: oauth2
 })
@@ -69,40 +69,18 @@ function getYouTubeVideos(finalCallback) {
   let query = 'SELECT playlist_id, youtube_id, title FROM youTubePlaylists ORDER BY title'
 
   let rows = db.prepare(query).all()
-  async.each(rows, function(row, callback) {
-    youtube.playlistItems.list({
-      part: 'id,snippet',
-      playlistId: row.youtube_id,
-      maxResults: 30
-    }, function(err, data, response) {
-      let videos = [], totalVideoCount = 0, nextPageToken = false
-      if(!err && data.hasOwnProperty('items')) {
-        for(let i=0,length=data.items.length;i<length;i++) {
-          videos.push({ 
-            title: data.items[i].snippet.title,
-            id: data.items[i].snippet.resourceId.videoId,
-            thumbnailUrl: data.items[i].snippet.thumbnails.default.url,
-            description: Autolinker.link(data.items[i].snippet.description, { newWindow: true })
-          })
-        }
 
-        if(data.hasOwnProperty('nextPageToken')) {
-          nextPageToken = data.nextPageToken
-        }
-
-        totalVideoCount = data.pageInfo.totalResults
-      }
-
+  async.each(rows, function(row, done) {
+    getYouTubeVideosByPlaylist(row.youtube_id, function(err, data) {
       lists.push({
         id: row.playlist_id,
         youtube_id: row.youtube_id,
         title: row.title,
-        videos: videos,
-        totalVideoCount: totalVideoCount,
-        nextPageToken: nextPageToken
+        videos: data.videos,
+        totalVideoCount: data.totalVideoCount,
+        nextPageToken: data.nextPageToken
       })
-
-      callback()
+      done()
     })
   }, function(err) {
     finalCallback(err, lists)
@@ -126,40 +104,83 @@ function getYouTubeVideosById(id, finalCallback, pageToken) {
   let query = 'SELECT playlist_id, youtube_id FROM youTubePlaylists WHERE playlist_id = ?'
   let row = db.prepare(query).get(id)
 
+  getYouTubeVideosByPlaylist(row.youtube_id, finalCallback, pageToken)
+}
+
+/**
+ * Get a list of YouTube videos by playlist
+ *
+ * Finds all YouTube videos associated with the specified playlist.
+ * Once done, calls finalCallback with parameters err and a data payload
+ *
+ * @param string playlistId The YouTube playlist ID
+ * @param function finalCallback
+ # @param string|false pageToken The next page token
+ */
+function getYouTubeVideosByPlaylist(playlistId, finalCallback, pageToken) {
+  let videos = []
+  pageToken = pageToken || false
+
   let youtubeParams = {
     part: 'id,snippet',
-    playlistId: row.youtube_id,
+    playlistId: playlistId,
     maxResults: 30
   }
+
   if(pageToken) {
     youtubeParams.pageToken = pageToken
   }
+
   youtube.playlistItems.list(youtubeParams, function(err, data, response) {
-    let totalVideoCount = 0, nextPageToken = false
-    if(!err && data.hasOwnProperty('items')) {
-      for(let i=0,length=data.items.length;i<length;i++) {
-        videos.push({ 
-          title: data.items[i].snippet.title,
-          id: data.items[i].snippet.resourceId.videoId,
-          thumbnailUrl: data.items[i].snippet.thumbnails.default.url,
-          description: Autolinker.link(data.items[i].snippet.description, { newWindow: true })
-        })
-      }
-
-      if(data.hasOwnProperty('nextPageToken')) {
-        nextPageToken = data.nextPageToken
-      }
-
-      totalVideoCount = data.pageInfo.totalResults
+    if(err) {
+      finalCallback(err, {})
     }
 
-    finalCallback(err, {
-      nextPageToken: nextPageToken,
-      totalVideoCount: totalVideoCount,
-      videos: videos
-    })
+    let totalVideoCount = 0, nextPageToken = false
+
+    if(data.hasOwnProperty('nextPageToken')) {
+      nextPageToken = data.nextPageToken
+    }
+
+    if(data.hasOwnProperty('items')) {
+
+      totalVideoCount = data.pageInfo.totalResults
+
+      async.each(data.items, function(item, done) {
+        youtube.videos.list({
+          part: 'id,snippet',
+          id: item.snippet.resourceId.videoId
+        }, function(err, data, response) {
+          let thumbnailUrl = false
+          if(data.items.length < 1) {
+            done()
+            return
+          }
+
+          let video = data.items[0]
+
+          if(video.snippet.thumbnails && video.snippet.thumbnails.default) {
+            thumbnailUrl = video.snippet.thumbnails.default.url
+          }
+
+          videos.push({
+            title: video.snippet.title,
+            id: video.id,
+            thumbnailUrl: thumbnailUrl,
+            description: Autolinker.link(video.snippet.description, { newWindow: true })
+          })
+          done()
+        })
+      }, function(err) {
+        finalCallback(err, {
+          nextPageToken: nextPageToken,
+          totalVideoCount: totalVideoCount,
+          videos: videos
+        })
+      })
+    }
   })
-}
+} 
 
 /**
  * Gets a post without child objects
