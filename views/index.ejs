@@ -144,7 +144,7 @@
             $('#content > .posts').append(html)
             findMapPosts(data.posts)
             initMaps()
-            $('#content').find('.article-sidenote').not('adjusted')
+            $('#content').find('.article-sidenote').not('.adjusted')
               .addClass('adjusted')
               .wrapInner('<span class="contents"></span>')
               .prepend('<sub>↪</sub>')
@@ -199,7 +199,7 @@
         }
 
         $('#paginator').hide()
-        $('#content').find('.article-sidenote').not('adjusted')
+        $('#content').find('.article-sidenote').not('.adjusted')
           .addClass('adjusted')
           .wrapInner('<span class="contents"></span>')
           .prepend('<sub>↪</sub>')
