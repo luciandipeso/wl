@@ -137,7 +137,7 @@
                     <div class="form-group form-group-sm">
                       <label for="fertile_interval" class="col-sm-6 control-label">Fertile interval</label>
                       <div class="input-group">
-                        <input type="number" class="form-control" id="fertile_interval" min="1" value="18">
+                        <input type="number" disabled class="form-control" id="fertile_interval" min="1" value="18">
                         <span class="input-group-addon">months</span>
                       </div>
                       <p class="help-block col-sm-offset-6">The number of months a cat can continue to reproduce</p>
@@ -238,8 +238,194 @@
     <script src="nvd3.js"></script>
     <script src="spinner.js"></script>
     <script src="spin.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/jstat@latest/dist/jstat.min.js"></script>
+    <script src="async.min.js"></script>
 
     <script>
+    function sample(bucket, count, replacement, asArray) {
+      asArray = asArray || false
+      replacement = replacement || false
+      var values = []
+      for(var i=0;i<count;i++) {
+        var index = Math.floor(Math.random()*bucket.length)
+        if(!replacement) {
+          values.push(bucket.splice(index, 1)[0])
+        } else {
+          values.push(bucket[index])
+        }
+      }
+      if(values.length == 1 && !asArray) {
+        return values[0]
+      }
+      return values
+    }
+
+    function runSimulation(jstat, options) {
+      var sexDistribution = []
+      if(options.sex_dist == "normal") {
+        for(var i=0;i<1000;i++) {
+          sexDistribution.push(jStat.normal.sample(1,1))
+        }
+      } else {
+        for(var i=0;i<1000;i++) {
+          sexDistribution.push(jStat.uniform.sample(0,1))
+        }
+      }
+      var max = sexDistribution.reduce(function(a,b) { return Math.max(a,b) })
+      var min = sexDistribution.reduce(function(a,b) { return Math.min(a,b) })
+      sexDistribution = sexDistribution.map(function(val) {
+        return (val-min)/(max-min)
+      })
+
+      var litterDistribution = []
+      if(options.litter_dist == "normal") {
+        for(var i=0;i<1000;i++) {
+          litterDistribution.push(jStat.normal.sample(1,1))
+        }
+      } else {
+        for(var i=0;i<1000;i++) {
+          litterDistribution.push(jStat.uniform.sample(0,1))
+        }
+      }
+      var max = litterDistribution.reduce(function(a,b) { return Math.max(a,b) })
+      var min = litterDistribution.reduce(function(a,b) { return Math.min(a,b) })
+      litterDistribution = litterDistribution.map(function(val) {
+        return (val-min)/(max-min)
+      })
+
+      var popSize = []
+
+      var cats = jstat.create(options.init_pop, 5, function(row, col) {
+        var colMap = [
+          "age", "sex", "isPregnant", "pregnancyStart", "lastLittered"
+        ]
+
+        switch(colMap[col]) {
+          case "age":
+            return options.maturation_interval
+            break
+
+          case "sex":
+            return "f"
+            break
+
+          case "isPregnant":
+            return true
+            break
+
+          case "pregnancyStart":
+            return 0
+            break
+
+          case "lastLittered":
+          default:
+            return 0
+        }
+      })
+
+      popSize.push(cats.rows())
+
+      for(var now=1;now<=options.simulation_length;now++) {
+        console.log(now)
+        // Increment the age by 1
+        cats = cats.map(function(value, row, col) {
+          if(col == 0) {
+            return value+1
+          }
+          return value
+        })
+
+        // Find those cats that are littering
+        var littering = []
+        // Littering cats are those who are mature, pregnant, and the pregnancy start + gestation interval is >= now
+        for(var i=0,nrow=cats.rows();i<nrow;i++) {
+          var row = cats[i]
+          if(row[2] == true && row[0] >= options.maturation_interval && row[3]+options.gestation_interval <= now) {
+            littering.push(i)
+          }
+        }
+
+        cats = cats.map(function(value, row, col) {
+          if(col == 2 && littering.indexOf(row) !== -1) {
+            return false
+          }
+          if(col == 4 && littering.indexOf(row) !== -1) {
+            return now
+          }
+          return value
+        })
+
+        // Create new kittens
+        var litterSize = 0, litterMales = 0
+        if(littering.length) {
+          for(var i=0,nLittering=littering.length;i<nLittering;i++) {
+            litterSize += Math.round(sample(litterDistribution, 1, true)*(options.max_litter_size-options.min_litter_size) + options.min_litter_size)
+          }
+
+          litterMales = Math.round(sample(sexDistribution,1, true)*litterSize)
+        }
+
+        if(litterSize > 0) {
+          var possibleMales = jStat.seq(0, litterSize-1, litterSize)
+          var males = sample(possibleMales, litterMales, false, true)
+          for(var i=0;i<litterSize;i++) {
+            var sex = "f"
+            if(males.indexOf(i) !== -1) {
+              sex = "m"
+            }
+            cats.push([
+              0, // age
+              sex, // sex
+              false, // isPregnant
+              -1, // pregnancyStart
+              -1 // lastLittered
+            ])
+          }
+        }
+
+        // Get which cats are impregnated
+        var impregnableIndex = []
+        for(var i=0,nrow=cats.rows();i<nrow;i++) {
+          var row = cats[i]
+          if(row[0] >= options.maturation_interval && !row[2] && row[1] == "f" && (row[4] < 0 || row[4] + options.pregnancy_interval <= now)) {
+            impregnableIndex.push(i)
+          }
+        }
+
+        var pregnant = sample(impregnableIndex, Math.min(Math.round(impregnableIndex.length*options.impregnation_rate), impregnableIndex.length), false, true)
+        cats = cats.map(function(value, row, col) {
+          if(pregnant.indexOf(row) !== -1 && col == 2) {
+            return true
+          } 
+          if(pregnant.indexOf(row) !== -1 && col == 3) {
+            return now
+          }
+          return value
+        })
+
+        // Kill old cats
+        if(options.cats_die) {
+          var keep = []
+          for(var i=0,nrow=cats.rows();i<nrow;i++) {
+            var row = cats[i]
+            if(row[0] <= options.cat_lifespan) {
+              keep.push(i)
+            }
+          }
+          
+          cats = cats.row(keep)
+        }
+
+        if(now % 30 == 0) {
+          popSize.push(cats.rows())
+        }
+      }
+
+      return({
+        popSize: popSize,
+        cats: cats
+      })
+    }
     $(function() {
       $(document).on('change', '#cats_die', function(e) {
         $("#cat_lifespan").prop('disabled', !this.checked);
@@ -247,11 +433,118 @@
       });
 
       $(document).on('click', '#run_simulation', function(e) {
+
+        var jstat = new jStat()
         $(this).prop('disabled', true);
         $(this).attr('disabled', true);
         $('#spinner').spin("small");
 
-        $.getJSON("fetch-data.php", {
+        var options = {
+          simulation_length: parseInt($("#simulation_length").val())*30,
+          init_pop: parseInt($("#init_pop").val()),
+          simulation_count: $("#simulation_count").val(),
+
+          maturation_interval: parseInt($("#maturation_interval").val())*30,
+          gestation_interval: parseInt($("#gestation_interval").val())*30,
+          pregnancy_interval: $("#pregnancy_interval").val(),
+          fertile_interval: parseInt($("#fertile_interval").val())*30,
+          impregnation_rate: parseInt($("#impregnation_rate").val())/100,
+
+          cats_die: $("#cats_die").get(0).checked ? true : false,
+          cat_lifespan: parseInt($("#cat_lifespan").val())*30,
+
+          min_litter_size: $("#min_litter_size").val(),
+          max_litter_size: $("#max_litter_size").val(),
+
+          sex_dist: $("#sex_dist").val(),
+          litter_dist: $("#litter_dist").val()
+        }
+
+        options = jQuery.extend({
+          simulation_length: 72*30,
+          init_pop: 1,
+          simulation_count: 10,
+
+          maturation_interval: 6*30,
+          gestation_interval: 3*30,
+          pregnancy_interval: 0,
+          fertile_interval: 18*30,
+          impregnation_rate: 0.95,
+
+          cats_die: false,
+          cat_lifespan: 24*30,
+
+          min_litter_size: 6,
+          max_litter_size: 6,
+
+          sex_dist: "normal",
+          litter_dist: "normal"
+        }, options)
+
+        console.log(options)
+
+        var jstat = new jStat()
+
+        var sims = jStat.seq(0,options.simulation_count-1,options.simulation_count)
+        var results = []
+        async.each(sims, function(num, done) {
+          results.push(runSimulation(jstat, options))
+          done()
+        }, function(err, res) {
+          console.log(results)
+          $('#run_simulation').prop('disabled', false);
+          $('#run_simulation').attr('disabled', false);
+          $('#spinner').spin(false);
+
+          nv.addGraph(function() {
+            var chart = nv.models.lineChart()
+              .margin({left: 100})
+              .useInteractiveGuideline(true)
+              .showYAxis(true);
+
+            chart.xAxis
+              .axisLabel('Time (months)')
+              .tickFormat(d3.format(',d'));
+
+            chart.yAxis
+              .axisLabel('Population size')
+              .tickFormat(d3.format(',d'));
+
+            var data = [], name, values;
+            for(var i=0;i<results.length;i++) {
+              name = 'Trial ' + (i+1)
+              /*if(i === 'avg') {
+                name = "Average";
+              } else {
+                name = i.charAt(0).toUpperCase() + i.slice(1).replace('.', ' ');
+              }*/
+
+              values = $.map(results[i].popSize, function(val, j) {
+                return {x: j+1, y: val}
+              });
+
+              data.push({
+                'values': values,
+                'key': name,
+                'area': false
+              });
+            }
+
+            console.debug(data);
+
+            d3.select('#chart svg')
+              .datum(data)
+              .transition().duration(500)
+              .call(chart);
+
+            nv.utils.windowResize(chart.update);
+
+            return chart;
+          });
+        })
+
+
+        /*$.getJSON("fetch-data.php", {
           simulation_length: $("#simulation_length").val(),
           init_pop: $("#init_pop").val(),
           simulation_count: $("#simulation_count").val(),
@@ -325,7 +618,7 @@
           $('#run_simulation').prop('disabled', false);
           $('#run_simulation').attr('disabled', false);
           $('#spinner').spin(false);
-        });
+        });*/
       });
     });
     </script>
